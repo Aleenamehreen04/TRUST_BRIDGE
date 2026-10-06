@@ -1,0 +1,15 @@
+{
+  "name": "trustbridge",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "setup": "npm install && npm install --prefix client",
+    "server": "node --watch server/index.js",
+    "client": "npm run dev --prefix client",
+    "dev": "concurrently -n server,client \"npm:server\" \"npm:client\"",
+    "test": "node server/test.js"
+  },
+  "dependencies": { "dotenv": "^16.4.5", "express": "^4.19.2", "express-rate-limit": "^7.4.0" },
+  "devDependencies": { "concurrently": "^9.0.0" }
+}
