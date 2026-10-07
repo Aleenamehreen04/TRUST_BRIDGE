@@ -1,4 +1,6 @@
 import 'dotenv/config'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import express from 'express'
 import rateLimit from 'express-rate-limit'
 import { analyzeRequest } from './analyze.js'
@@ -8,6 +10,7 @@ const CHANNELS = ['WhatsApp', 'SMS', 'Email', 'Phone', 'Other']
 const MAX_LEN = 3000
 
 export const app = express()
+app.set('trust proxy', 1)
 app.use(express.json({ limit: '20kb' }))
 app.use('/api', rateLimit({ windowMs: 60_000, max: 15, message: { error: 'Too many requests. Please wait a minute and try again.' } }))
 
@@ -17,8 +20,6 @@ app.post('/api/analyze', async (req, res) => {
   if (message.length > MAX_LEN) return res.status(400).json({ error: `Please keep the request under ${MAX_LEN} characters.` })
   if ((claimedIdentity && !IDENTITIES.includes(claimedIdentity)) || (channel && !CHANNELS.includes(channel)))
     return res.status(400).json({ error: 'Invalid context option.' })
-  
-  // ← changed from GROQ_API_KEY to LLM_API_KEY
   if (!process.env.LLM_API_KEY) return res.status(503).json({ error: "We couldn't analyze this request right now. Please try again." })
 
   try {
@@ -28,6 +29,11 @@ app.post('/api/analyze', async (req, res) => {
     res.status(502).json({ error: "We couldn't analyze this request right now. Please try again." })
   }
 })
+
+// In production this same server also serves the built React app.
+const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), '../client/dist')
+app.use(express.static(dist))
+app.get('*', (req, res) => res.sendFile(path.join(dist, 'index.html')))
 
 app.use((err, req, res, next) => res.status(400).json({ error: 'Invalid request.' }))
 
